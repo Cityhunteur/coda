@@ -1,8 +1,6 @@
 [%%import
 "../../../config.mlh"]
 
-let () = Snarky.Snark.set_eval_constraints true
-
 open Ppxlib
 open Asttypes
 open Parsetree
