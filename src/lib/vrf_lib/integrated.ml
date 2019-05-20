@@ -99,12 +99,21 @@ end = struct
         ((module Shifted) : shifted Group.Checked.Shifted.m) ~private_key
         ~public_key message =
       let%bind () =
-        let%bind public_key_shifted = Shifted.(add zero public_key) in
-        Group.Checked.scale_generator
-          (module Shifted)
-          private_key ~init:Shifted.zero
-        >>= Shifted.Assert.equal public_key_shifted
+        with_label __LOC__
+          (let%bind public_key_shifted =
+             with_label __LOC__ Shifted.(add zero public_key)
+           in
+           Printf.eprintf "GOT PUBKEY SHIFTED\n%!" ;
+           let%bind other_key =
+             with_label __LOC__
+               (Group.Checked.scale_generator
+                  (module Shifted)
+                  private_key ~init:Shifted.zero)
+           in
+           Printf.eprintf "GOT SCALED GENERATOR KEY\n%!" ;
+           Shifted.Assert.equal public_key_shifted other_key)
       in
+      Printf.eprintf "ASSERT SUCCEEDED\n%!" ;
       eval (module Shifted) ~private_key message
   end
 end

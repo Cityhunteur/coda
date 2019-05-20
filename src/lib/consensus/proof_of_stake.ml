@@ -497,7 +497,7 @@ module Data = struct
 
   module Vrf = struct
     module Scalar = struct
-      type value = Snark_params.Tick.Inner_curve.Scalar.t
+      type value = Snark_params.Tick.Inner_curve.Scalar.t [@@deriving sexp]
 
       type var = Snark_params.Tick.Inner_curve.Scalar.var
 
@@ -751,12 +751,36 @@ module Data = struct
       let%bind private_key =
         request_witness Scalar.typ (As_prover.return Private_key)
       in
+      let%bind () =
+        as_prover
+          As_prover.(
+            let%map private_key_val = As_prover.read Scalar.typ private_key in
+            Printf.eprintf
+              !"VRF PRIVATE KEY: %{sexp: Scalar.value}\n%!"
+              private_key_val)
+      in
       let winner_addr = message.Message.delegator in
       let%bind account =
         with_label __LOC__ (Frozen_ledger_hash.get ledger winner_addr)
       in
+      let%bind () =
+        as_prover
+          As_prover.(
+            let%map account_val = As_prover.read Account.typ account in
+            Printf.eprintf
+              !"VRF ACCOUNT: %{sexp: Account.value}\n%!"
+              account_val)
+      in
       let%bind delegate =
         with_label __LOC__ (Public_key.decompress_var account.delegate)
+      in
+      let%bind () =
+        as_prover
+          As_prover.(
+            let%map delegate_val = As_prover.read Public_key.typ delegate in
+            Printf.eprintf
+              !"VRF DELEGATE: %{sexp: Public_key.t}\n%!"
+              delegate_val)
       in
       let%map evaluation =
         with_label __LOC__

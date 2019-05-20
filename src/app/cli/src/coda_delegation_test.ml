@@ -28,18 +28,15 @@ let main () =
     Coda_worker_testnet.test logger n Option.some snark_work_public_keys
       Protocols.Coda_pow.Work_selection.Seq ~max_concurrent_connections:None
   in
-  (* zeroth account will be delegatee *)
-  let keypairs =
-    Genesis_ledger.(
-      List.map (List.tl_exn accounts) ~f:keypair_of_account_record_exn)
-  in
+  Logger.info logger ~module_:__MODULE__ ~location:__LOC__ "Started test net" ;
   let _ =
-    List.iteri Genesis_ledger.accounts (fun i (_, acct) ->
+    List.iteri Genesis_ledger.accounts (fun i ((_, acct) as record) ->
+        let keypair = Genesis_ledger.keypair_of_account_record_exn record in
         Stdlib.Printf.eprintf
-          !"ACCT: %d KEY: %{sexp: Account.key} BALANCE: %{sexp: \
-            Currency.Balance.t}\n\
+          !"ACCT: %d PRIVKEY: %{sexp: Import.Private_key.t} PUBKEY: %{sexp: \
+            Account.key} BALANCE: %{sexp: Currency.Balance.t}\n\
             %!"
-          i (Account.public_key acct) acct.balance )
+          i keypair.private_key (Account.public_key acct) acct.balance )
   in
   (* second account is wealthy sender *)
   let ((_, sender_account) as sender) =
@@ -71,6 +68,8 @@ let main () =
     Coda_worker_testnet.Payments.send_several_payments testnet ~node:0
       ~keypairs ~n:4
   in *)
+  Logger.info logger ~module_:__MODULE__ ~location:__LOC__
+    "Started sender transition pipe" ;
   let ((_, delegatee_account) as delegatee) =
     List.nth_exn Genesis_ledger.accounts 0
   in
@@ -98,15 +97,15 @@ let main () =
     Coda_worker_testnet.Payments.send_several_payments testnet ~node:0
       ~keypairs ~n:4
   in *)
+  Logger.info logger ~module_:__MODULE__ ~location:__LOC__
+    "Started delegatee transition pipe" ;
   let%bind () =
     Coda_worker_testnet.Delegates.delegate_stake testnet ~node:0
       ~delegator:sender_keypair.private_key ~delegatee:delegatee_pubkey
   in
-  let%bind () = wait_minutes 30 logger in
-  let%bind () =
-    Coda_worker_testnet.Payments.send_several_payments testnet ~node:0
-      ~keypairs ~n:4
-  in
+  Logger.info logger ~module_:__MODULE__ ~location:__LOC__
+    "Ran delegation command" ;
+  let%bind () = wait_minutes 60 logger in
   let%bind () = after (Time.Span.of_min 10.) in
   Coda_worker_testnet.Api.teardown testnet
 
