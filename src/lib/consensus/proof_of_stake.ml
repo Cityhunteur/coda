@@ -778,7 +778,9 @@ module Data = struct
       let%bind delegate =
         with_label __LOC__ (Public_key.decompress_var account.delegate)
       in
-      assert (public_key = delegate) ;
+      let%bind () =
+        with_label __LOC__ (Public_key.assert_equal public_key delegate)
+      in
       let%bind () =
         as_prover
           As_prover.(
